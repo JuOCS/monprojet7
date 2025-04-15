@@ -31,7 +31,7 @@ df = pd.read_pickle("data/dataframeP7.pkl")
 df_reel = df[df["TARGET"].isna()]
 
 # Charger le modèle
-pipeline = joblib.load("modele_pipeline.pkl")
+pipeline = joblib.load("data/modele_pipeline.pkl")
 scaler = pipeline.named_steps['scaler']
 model = pipeline.named_steps['classifier']
 
