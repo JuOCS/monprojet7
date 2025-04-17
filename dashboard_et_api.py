@@ -3,7 +3,7 @@ import subprocess
 import os
 
 # Chemin relatif pour accéder à api.py et dashboard.py
-scripts_directory = "./mon_projet_7/scripts"
+scripts_directory = "./scripts"
 
 # Obtenez les variables d'environnement actuelles
 env = os.environ.copy()
