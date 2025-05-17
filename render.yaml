@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: monprojet7_api
+    env: python
+    region: frankfurt  # ou change selon ta préférence (ex: oregon, singapore, etc.)
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: AZURE_STORAGE_CONNECTION_STRING
+        sync: false  # Défini via l'interface Render (plus sécurisé)
