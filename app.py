@@ -5,7 +5,6 @@ from flask import Flask, jsonify, request
 from sklearn.preprocessing import StandardScaler
 from azure.storage.blob import BlobServiceClient
 import traceback
-# import shap  # Optionnel, si activé, le garder hors de la fonction
 
 app = Flask(__name__)
 
@@ -16,12 +15,13 @@ DATA_DIR = "data"
 MODEL_PATH = os.path.join(DATA_DIR, "modele_pipeline.pkl")
 DF_PATH = os.path.join(DATA_DIR, "dataframeP7.pkl")
 
-# === CHARGEMENT À LA VOLÉE ===
+# === VARIABLES GLOBALES ===
 pipeline = None
 scaler = None
 model = None
-# explainer = None  # À activer si SHAP est utilisé
+df_cache = None  # Cache du DataFrame
 
+# === FONCTIONS UTILITAIRES ===
 def download_blob(blob_name, save_path):
     if not BLOB_CONN_STR:
         raise EnvironmentError("AZURE_STORAGE_CONNECTION_STRING non défini.")
@@ -39,13 +39,15 @@ def load_model():
         pipeline = joblib.load(MODEL_PATH)
         scaler = pipeline.named_steps['scaler']
         model = pipeline.named_steps['classifier']
-        # explainer = shap.TreeExplainer(model)
 
 def load_client_data(sk_id_curr):
-    if not os.path.exists(DF_PATH):
-        download_blob("dataframeP7.pkl", DF_PATH)
-    df = pd.read_pickle(DF_PATH)
-    df_reel = df[(df["TARGET"].isna()) & (df["SK_ID_CURR"] == sk_id_curr)]
+    global df_cache
+    if df_cache is None:
+        if not os.path.exists(DF_PATH):
+            download_blob("dataframeP7.pkl", DF_PATH)
+        df_cache = pd.read_pickle(DF_PATH)
+    # Filtrage sur l'ID
+    df_reel = df_cache[(df_cache["TARGET"].isna()) & (df_cache["SK_ID_CURR"] == sk_id_curr)]
     return df_reel
 
 # === ROUTES ===
@@ -72,16 +74,12 @@ def predict():
         prediction = model.predict_proba(sample_scaled)
         proba = prediction[0][1] * 100
 
-        # SHAP optionnel :
-        # shap_values = explainer.shap_values(sample_scaled)[0][0].tolist()
-
         return jsonify({
             'probability': proba,
-            # 'shap_values': shap_values,
             'feature_names': sample.columns.tolist(),
             'feature_values': sample.values[0].tolist()
         })
 
     except Exception:
-        print(traceback.format_exc(), flush=True)
+        print(traceback.format_exc())  # Pour logs Render
         return jsonify({'error': 'Erreur interne lors de la prédiction'}), 500
